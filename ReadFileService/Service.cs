@@ -11,7 +11,7 @@ namespace ReadFileService {
         public static String Internal = "";
         public static String External = "";
         public static String file_in = "";
-        public static String file_out = "";
+        public static int socket_port = 0;
         public static String queue = "";
         public static String license = "";
         public static StreamWriter file = null;
@@ -28,7 +28,7 @@ namespace ReadFileService {
 
                 XElement configXml = XElement.Load(System.AppDomain.CurrentDomain.BaseDirectory + @"\config.xml");
                 file_in = configXml.Element("FileIn").Value.ToString();
-                file_out = configXml.Element("FileOut").Value.ToString();
+                socket_port = Int32.Parse(configXml.Element("SocketPort").Value.ToString());
                 queue = configXml.Element("Queue").Value.ToString();
                 license = configXml.Element("LicenseKey").Value.ToString();
                 CallID = new List<string>();
@@ -36,6 +36,8 @@ namespace ReadFileService {
                 if (!License.VerifyLicence(license)) {
                     this.Stop();
                 }
+
+                Server.Start(socket_port);
 
                 int.TryParse(prms.NOfLines, out int n);
 
@@ -56,6 +58,7 @@ namespace ReadFileService {
         }
 
         protected override void OnStop() {
+            Server.CloseAll();
         }
 
         private static void Tail_Changed(object sender, Tail.TailEventArgs e) {
@@ -94,9 +97,7 @@ namespace ReadFileService {
                         Internal = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
                         Internal = Internal.Replace(System.Environment.NewLine, "").Trim();
 
-                        file = new StreamWriter(file_out, true);
-                        file.WriteLine(tmp + "|Discando|" + External + "|" + Internal);
-                        file.Close();
+                        Server.Message(tmp + "|Discando|" + External + "|" + Internal);
                         return;
                     }
 
@@ -111,9 +112,7 @@ namespace ReadFileService {
                         Internal = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
                         Internal = Internal.Replace(System.Environment.NewLine, "").Trim();
 
-                        file = new StreamWriter(file_out, true);
-                        file.WriteLine(tmp + "|Em Conversação|" + External + "|" + Internal);
-                        file.Close();
+                        Server.Message(tmp + "|Em Conversação|" + External + "|" + Internal);
                         return;
                     }
                 }
