@@ -62,7 +62,7 @@ namespace ReadFileService {
                 foreach (Socket socket in clientSockets) {
                     if (SocketConnected(socket)) {
                         socket.Send(msg);
-                        Util.Log("Send client " + handler.RemoteEndPoint  + ", msg " + message);
+                        Util.Log("Send client " + socket.RemoteEndPoint + ", msg " + message);
                     }
                 }
             }
