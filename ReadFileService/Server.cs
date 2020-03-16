@@ -27,10 +27,10 @@ namespace ReadFileService {
                 Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 IPAddress ipAddress = IPAddress.Any;
                 listener.Bind(new IPEndPoint(ipAddress, socket_port));
+                listener.Listen(100);
 
                 while (true) {
                     allDone.Reset();
-                    listener.Listen(100);
                     listener.BeginAccept(AcceptCallback, listener);
                     allDone.WaitOne();
                 }
@@ -45,6 +45,7 @@ namespace ReadFileService {
                 allDone.Set();
                 listener = (Socket)ar.AsyncState;
                 handler = listener.EndAccept(ar);
+                handler.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 state.workSocket = handler;
                 clientSockets.Add(handler);
                 Util.Log("Client connected " + handler.RemoteEndPoint);
@@ -54,17 +55,30 @@ namespace ReadFileService {
             }
         }
 
-        public static void Message(String message) {
+        public static void Message(string message) {
             try {
                 byte[] msg = Encoding.ASCII.GetBytes(message);
 
                 foreach (Socket socket in clientSockets) {
-                    socket.Send(msg);
+                    if (SocketConnected(socket)) {
+                        socket.Send(msg);
+                        Util.Log("Send client " + handler.RemoteEndPoint  + ", msg " + message);
+                    }
                 }
             }
             catch (Exception ex) {
                 Util.Log(ex.ToString());
             }
+        }
+
+        private static bool SocketConnected(Socket s) {
+            bool part1 = s.Poll(1000, SelectMode.SelectRead);
+            bool part2 = (s.Available == 0);
+
+            if (part1 && part2)
+                return false;
+            else
+                return true;
         }
 
         public static void CloseAll() {

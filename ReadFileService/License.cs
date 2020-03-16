@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace ReadFileService {
     class License {
-        public static Boolean VerifyLicence(string licence) {
+        public static bool VerifyLicence(string licence) {
             string hddSerial = GetHDDSerialNo();
             string mACAddress = GetMACAddress();
             string boardProductId = GetBoardProductId();
@@ -44,7 +44,7 @@ namespace ReadFileService {
             return "Unknown";
         }
 
-        public static String GetHDDSerialNo() {
+        public static string GetHDDSerialNo() {
             ManagementClass mangnmt = new ManagementClass("Win32_LogicalDisk");
             ManagementObjectCollection mcol = mangnmt.GetInstances();
             string result = "";
@@ -58,9 +58,10 @@ namespace ReadFileService {
         public static string GetMACAddress() {
             ManagementClass mc = new ManagementClass("Win32_NetworkAdapterConfiguration");
             ManagementObjectCollection moc = mc.GetInstances();
-            string MACAddress = String.Empty;
+            string MACAddress = string.Empty;
+
             foreach (ManagementObject mo in moc) {
-                if (MACAddress == String.Empty) {
+                if (MACAddress == string.Empty) {
                     if ((bool)mo["IPEnabled"] == true) MACAddress = mo["MacAddress"].ToString();
                 }
                 mo.Dispose();
@@ -75,13 +76,14 @@ namespace ReadFileService {
         }
 
         static string GetMd5Sum(string productIdentifier) {
-            System.Text.Encoder enc = System.Text.Encoding.Unicode.GetEncoder();
+            Encoder enc = Encoding.Unicode.GetEncoder();
             byte[] unicodeText = new byte[productIdentifier.Length * 2];
             enc.GetBytes(productIdentifier.ToCharArray(), 0, productIdentifier.Length, unicodeText, 0, true);
             MD5 md5 = new MD5CryptoServiceProvider();
             byte[] result = md5.ComputeHash(unicodeText);
 
             StringBuilder sb = new StringBuilder();
+
             for (int i = 0; i < result.Length; i++) {
                 sb.Append(result[i].ToString("X2"));
             }

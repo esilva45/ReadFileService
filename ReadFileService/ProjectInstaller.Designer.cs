@@ -28,12 +28,13 @@
             // 
             // serviceProcessInstaller
             // 
-            this.serviceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalService;
+            this.serviceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
             this.serviceProcessInstaller.Password = null;
             this.serviceProcessInstaller.Username = null;
             // 
             // serviceInstaller
             // 
+            this.serviceInstaller.Description = "Serviço de socket e leitura de logs";
             this.serviceInstaller.DisplayName = "Read File Service";
             this.serviceInstaller.ServiceName = "ReadFileService";
             this.serviceInstaller.StartType = System.ServiceProcess.ServiceStartMode.Automatic;

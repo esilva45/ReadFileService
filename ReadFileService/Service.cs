@@ -8,12 +8,12 @@ namespace ReadFileService {
     public partial class Service : ServiceBase {
         public static IList<string> CallID;
         private const short DefaultLines = 5;
-        public static String Internal = "";
-        public static String External = "";
-        public static String file_in = "";
+        public static string Internal = "";
+        public static string External = "";
+        public static string file_in = "";
         public static int socket_port = 0;
-        public static String queue = "";
-        public static String license = "";
+        public static string queue = "";
+        public static string license = "";
         public static StreamWriter file = null;
 
         public Service() {
@@ -26,9 +26,9 @@ namespace ReadFileService {
             try {
                 prms.Parse();
 
-                XElement configXml = XElement.Load(System.AppDomain.CurrentDomain.BaseDirectory + @"\config.xml");
+                XElement configXml = XElement.Load(AppDomain.CurrentDomain.BaseDirectory + @"\config.xml");
                 file_in = configXml.Element("FileIn").Value.ToString();
-                socket_port = Int32.Parse(configXml.Element("SocketPort").Value.ToString());
+                socket_port = int.Parse(configXml.Element("SocketPort").Value.ToString());
                 queue = configXml.Element("Queue").Value.ToString();
                 license = configXml.Element("LicenseKey").Value.ToString();
                 CallID = new List<string>();
@@ -49,8 +49,6 @@ namespace ReadFileService {
                 tail.LineFilter = prms.Filter;
                 tail.Changed += new EventHandler<Tail.TailEventArgs>(Tail_Changed);
                 tail.Run();
-                
-                //tail.Stop();
             }
             catch (Exception e) {
                 Util.Log(e.ToString());
@@ -63,12 +61,12 @@ namespace ReadFileService {
 
         private static void Tail_Changed(object sender, Tail.TailEventArgs e) {
             try {
-                String tmp = "";
+                string tmp = "";
 
                 if (e.Line.Contains("Status=Connected")) {
                     int index1 = e.Line.IndexOf("ExternalParty=") + 14;
                     External = e.Line.Substring(index1, e.Line.IndexOf("InternalParty") - index1);
-                    External = External.Replace(System.Environment.NewLine, "").Trim();
+                    External = External.Replace(Environment.NewLine, "").Trim();
 
                     if (queue.Contains(External)) {
                         return;
@@ -82,7 +80,7 @@ namespace ReadFileService {
                 if ((e.Line.Contains("Status=Connected") || e.Line.Contains("Status=Ringing")) && !e.Line.Contains("Wqueue")) {
                     int index0 = e.Line.IndexOf("HistoryIDOfTheCall=") + 19;
                     tmp = e.Line.Substring(index0, e.Line.IndexOf("OriginatedBy") - index0);
-                    tmp = tmp.Replace(System.Environment.NewLine, "").Trim();
+                    tmp = tmp.Replace(Environment.NewLine, "").Trim();
                 }
 
                 if (!string.IsNullOrEmpty(tmp)) {
@@ -91,11 +89,11 @@ namespace ReadFileService {
 
                         int index1 = e.Line.IndexOf("ExternalParty=") + 14;
                         External = e.Line.Substring(index1, e.Line.IndexOf("InternalParty") - index1);
-                        External = External.Replace(System.Environment.NewLine, "").Trim();
+                        External = External.Replace(Environment.NewLine, "").Trim();
 
                         int index2 = e.Line.IndexOf("DN=Wextension") + 17;
                         Internal = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
-                        Internal = Internal.Replace(System.Environment.NewLine, "").Trim();
+                        Internal = Internal.Replace(Environment.NewLine, "").Trim();
 
                         Server.Message(tmp + "|Discando|" + External + "|" + Internal);
                         return;
@@ -106,11 +104,11 @@ namespace ReadFileService {
 
                         int index1 = e.Line.IndexOf("ExternalParty=") + 14;
                         External = e.Line.Substring(index1, e.Line.IndexOf("InternalParty") - index1);
-                        External = External.Replace(System.Environment.NewLine, "").Trim();
+                        External = External.Replace(Environment.NewLine, "").Trim();
 
                         int index2 = e.Line.IndexOf("DN=Wextension") + 17;
                         Internal = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
-                        Internal = Internal.Replace(System.Environment.NewLine, "").Trim();
+                        Internal = Internal.Replace(Environment.NewLine, "").Trim();
 
                         Server.Message(tmp + "|Em Conversação|" + External + "|" + Internal);
                         return;

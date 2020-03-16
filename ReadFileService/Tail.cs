@@ -121,6 +121,7 @@ namespace ReadFileService {
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Delete | FileShare.ReadWrite))
             using (StreamReader sr = new StreamReader(stream)) {
                 string line;
+
                 while (null != (line = sr.ReadLine())) {
                     if (!string.IsNullOrEmpty(LineFilter)) {
                         if (lineFilterRegex.IsMatch(line)) {
