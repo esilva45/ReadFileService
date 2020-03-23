@@ -1,19 +1,38 @@
 ﻿using System;
-using System.Management;
 using System.Text;
 using System.Security.Cryptography;
+using System.IO;
+using System.Xml.Linq;
 
 namespace ReadFileService {
     class License {
-        public static bool VerifyLicence(string licence) {
-            string hddSerial = GetHDDSerialNo();
-            string mACAddress = GetMACAddress();
-            string boardProductId = GetBoardProductId();
-            string hashId = "DCOMApplicationSetting";
+        private static string pwd = "PuR@94zG";
 
-            string productIdentifier = (hddSerial + "-" + mACAddress + "-" + boardProductId + "-" + hashId).ToLower();
+        public static void LicenseGenerator() {
+            string uuid = Guid.NewGuid().ToString() + Environment.ProcessorCount + Environment.MachineName + Environment.OSVersion.Platform 
+                + Environment.Is64BitOperatingSystem;
+            uuid = uuid.Replace("-", "").Replace(" ", "").ToUpper();
+
+            string lic_file = AppDomain.CurrentDomain.BaseDirectory + @"license.lic";
+
+            XElement configXml = XElement.Load(AppDomain.CurrentDomain.BaseDirectory + @"config.xml");
+            string file_in = configXml.Element("FileIn").Value.ToString();
+            int socket_port = int.Parse(configXml.Element("SocketPort").Value.ToString());
+            string queue = configXml.Element("Queue").Value.ToString();
+            string license = configXml.Element("LicenseKey").Value.ToString();
+
+            if (!File.Exists(lic_file)) {
+                StreamWriter file = new StreamWriter(lic_file, true);
+                file.WriteLine(uuid);
+                file.Close();
+                EncryptFile(AppDomain.CurrentDomain.BaseDirectory + @"license.lic", pwd);
+            }
+        }
+
+        public static bool VerifyLicence(string licence) {
+            string uuid = DecryptFile(AppDomain.CurrentDomain.BaseDirectory + @"license.lic", pwd);
             var sha1 = new SHA1Managed();
-            var plaintextBytes = Encoding.UTF8.GetBytes(productIdentifier);
+            var plaintextBytes = Encoding.UTF8.GetBytes(uuid);
             var hashBytes = sha1.ComputeHash(plaintextBytes);
             var sb = new StringBuilder();
 
@@ -31,51 +50,53 @@ namespace ReadFileService {
             return true;
         }
 
-        public static string GetBoardProductId() {
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher("root\\CIMV2", "SELECT * FROM Win32_BaseBoard");
+        private static void EncryptFile(string sInputFilename, string sKey) {
+            FileStream fsInput = new FileStream(sInputFilename, FileMode.Open, FileAccess.ReadWrite);
+            DESCryptoServiceProvider DES = new DESCryptoServiceProvider();
+            DES.Key = ASCIIEncoding.ASCII.GetBytes(sKey);
+            DES.IV = ASCIIEncoding.ASCII.GetBytes(sKey);
+            ICryptoTransform desencrypt = DES.CreateEncryptor();
+            CryptoStream cryptostream = new CryptoStream(fsInput, desencrypt, CryptoStreamMode.Write);
+            byte[] bytearrayinput = new byte[fsInput.Length];
+            fsInput.Read(bytearrayinput, 0, bytearrayinput.Length);
+            fsInput.SetLength(0);
+            cryptostream.Write(bytearrayinput, 0, bytearrayinput.Length);
+            cryptostream.Close();
+            fsInput.Close();
+        }
 
-            foreach (ManagementObject wmi in searcher.Get()) {
-                try {
-                    return wmi.GetPropertyValue("Product").ToString();
+        private static string DecryptFile(string sInputFilename, string sKey) {
+            string key = "";
+            var DES = new DESCryptoServiceProvider();
+            DES.Key = Encoding.ASCII.GetBytes(sKey);
+            DES.IV = Encoding.ASCII.GetBytes(sKey);
+            ICryptoTransform desdecrypt = DES.CreateDecryptor();
+
+            using (var fsread = new FileStream(sInputFilename, FileMode.Open, FileAccess.ReadWrite)) {
+                using (var cryptostreamDecr = new CryptoStream(fsread, desdecrypt, CryptoStreamMode.Read)) {
+                    int data;
+
+                    fsread.Flush();
+
+                    using (var ms = new MemoryStream()) {
+                        while ((data = cryptostreamDecr.ReadByte()) != -1) {
+                            ms.WriteByte((byte)data);
+                        }
+
+                        cryptostreamDecr.Close();
+                        key = Encoding.ASCII.GetString(ms.ToArray());
+                    }
                 }
-                catch { }
             }
 
-            return "Unknown";
+            return key;
         }
 
-        public static string GetHDDSerialNo() {
-            ManagementClass mangnmt = new ManagementClass("Win32_LogicalDisk");
-            ManagementObjectCollection mcol = mangnmt.GetInstances();
-            string result = "";
-
-            foreach (ManagementObject strt in mcol) {
-                result += Convert.ToString(strt["VolumeSerialNumber"]);
-            }
-            return result;
-        }
-
-        public static string GetMACAddress() {
-            ManagementClass mc = new ManagementClass("Win32_NetworkAdapterConfiguration");
-            ManagementObjectCollection moc = mc.GetInstances();
-            string MACAddress = string.Empty;
-
-            foreach (ManagementObject mo in moc) {
-                if (MACAddress == string.Empty) {
-                    if ((bool)mo["IPEnabled"] == true) MACAddress = mo["MacAddress"].ToString();
-                }
-                mo.Dispose();
-            }
-
-            MACAddress = MACAddress.Replace(":", "");
-            return MACAddress;
-        }
-
-        static string GenerateLicenseKey(string productIdentifier) {
+        private static string GenerateLicenseKey(string productIdentifier) {
             return FormatLicenseKey(GetMd5Sum(productIdentifier));
         }
 
-        static string GetMd5Sum(string productIdentifier) {
+        private static string GetMd5Sum(string productIdentifier) {
             Encoder enc = Encoding.Unicode.GetEncoder();
             byte[] unicodeText = new byte[productIdentifier.Length * 2];
             enc.GetBytes(productIdentifier.ToCharArray(), 0, productIdentifier.Length, unicodeText, 0, true);
@@ -87,15 +108,17 @@ namespace ReadFileService {
             for (int i = 0; i < result.Length; i++) {
                 sb.Append(result[i].ToString("X2"));
             }
+
             return sb.ToString();
         }
 
-        static string FormatLicenseKey(string productIdentifier) {
+        private static string FormatLicenseKey(string productIdentifier) {
             productIdentifier = productIdentifier.Substring(0, 28).ToUpper();
             char[] serialArray = productIdentifier.ToCharArray();
             StringBuilder licenseKey = new StringBuilder();
 
             int j = 0;
+
             for (int i = 0; i < 28; i++) {
                 for (j = i; j < 4 + i; j++) {
                     licenseKey.Append(serialArray[j]);
@@ -107,6 +130,7 @@ namespace ReadFileService {
                     licenseKey.Append("-");
                 }
             }
+
             return licenseKey.ToString();
         }
     }

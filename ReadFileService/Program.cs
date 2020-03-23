@@ -17,6 +17,7 @@ namespace ReadFileService {
                                 ManagedInstallerClass.InstallHelper(new string[] {
                                 Assembly.GetExecutingAssembly().Location }
                             );
+                            License.LicenseGenerator();
                             break;
                         }
                         case "-uninstall": {
