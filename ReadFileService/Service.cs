@@ -95,7 +95,7 @@ namespace ReadFileService {
                         Internal = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
                         Internal = Internal.Replace(Environment.NewLine, "").Trim();
 
-                        Server.Message(tmp + "|Discando|" + External + "|" + Internal);
+                        Server.Message(tmp + "|Discando|" + External + "|" + Internal + "@");
                         return;
                     }
 
@@ -110,7 +110,7 @@ namespace ReadFileService {
                         Internal = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
                         Internal = Internal.Replace(Environment.NewLine, "").Trim();
 
-                        Server.Message(tmp + "|Em Conversação|" + External + "|" + Internal);
+                        Server.Message(tmp + "|Em Conversacao|" + External + "|" + Internal + "@");
                         return;
                     }
                 }
