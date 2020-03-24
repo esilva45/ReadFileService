@@ -2,35 +2,36 @@
 using System.Text;
 using System.Security.Cryptography;
 using System.IO;
-using System.Xml.Linq;
 
 namespace ReadFileService {
     class License {
         private static string pwd = "PuR@94zG";
+        private static readonly string fileName = AppDomain.CurrentDomain.BaseDirectory + @"/license.lic";
 
         public static void LicenseGenerator() {
             string uuid = Guid.NewGuid().ToString() + Environment.ProcessorCount + Environment.MachineName + Environment.OSVersion.Platform 
                 + Environment.Is64BitOperatingSystem;
             uuid = uuid.Replace("-", "").Replace(" ", "").ToUpper();
 
-            string lic_file = AppDomain.CurrentDomain.BaseDirectory + @"license.lic";
-
-            XElement configXml = XElement.Load(AppDomain.CurrentDomain.BaseDirectory + @"config.xml");
-            string file_in = configXml.Element("FileIn").Value.ToString();
-            int socket_port = int.Parse(configXml.Element("SocketPort").Value.ToString());
-            string queue = configXml.Element("Queue").Value.ToString();
-            string license = configXml.Element("LicenseKey").Value.ToString();
-
-            if (!File.Exists(lic_file)) {
-                StreamWriter file = new StreamWriter(lic_file, true);
+            if (!File.Exists(fileName)) {
+                StreamWriter file = new StreamWriter(fileName, true);
                 file.WriteLine(uuid);
                 file.Close();
-                EncryptFile(AppDomain.CurrentDomain.BaseDirectory + @"license.lic", pwd);
+                EncryptFile(fileName, pwd);
             }
         }
 
         public static bool VerifyLicence(string licence) {
-            string uuid = DecryptFile(AppDomain.CurrentDomain.BaseDirectory + @"license.lic", pwd);
+            string uuid = DecryptFile(fileName, pwd);
+            string hardware = Environment.ProcessorCount + Environment.MachineName + Environment.OSVersion.Platform + Environment.Is64BitOperatingSystem;
+            hardware = hardware.Replace("-", "").Replace(" ", "").ToUpper();
+
+            if (!uuid.Contains(hardware)) {
+                File.Delete(fileName);
+                LicenseGenerator();
+                uuid = DecryptFile(fileName, pwd);
+            }
+
             var sha1 = new SHA1Managed();
             var plaintextBytes = Encoding.UTF8.GetBytes(uuid);
             var hashBytes = sha1.ComputeHash(plaintextBytes);
@@ -71,6 +72,10 @@ namespace ReadFileService {
             DES.Key = Encoding.ASCII.GetBytes(sKey);
             DES.IV = Encoding.ASCII.GetBytes(sKey);
             ICryptoTransform desdecrypt = DES.CreateDecryptor();
+
+            if (!File.Exists(sInputFilename)) {
+                LicenseGenerator();
+            }
 
             using (var fsread = new FileStream(sInputFilename, FileMode.Open, FileAccess.ReadWrite)) {
                 using (var cryptostreamDecr = new CryptoStream(fsread, desdecrypt, CryptoStreamMode.Read)) {

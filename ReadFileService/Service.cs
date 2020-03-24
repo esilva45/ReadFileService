@@ -26,7 +26,7 @@ namespace ReadFileService {
             try {
                 prms.Parse();
 
-                XElement configXml = XElement.Load(AppDomain.CurrentDomain.BaseDirectory + @"\config.xml");
+                XElement configXml = XElement.Load(AppDomain.CurrentDomain.BaseDirectory + @"/config.xml");
                 file_in = configXml.Element("FileIn").Value.ToString();
                 socket_port = int.Parse(configXml.Element("SocketPort").Value.ToString());
                 queue = configXml.Element("Queue").Value.ToString();
@@ -34,7 +34,8 @@ namespace ReadFileService {
                 CallID = new List<string>();
 
                 if (!License.VerifyLicence(license)) {
-                    this.Stop();
+                    //this.Stop();
+                    Environment.Exit(0);
                 }
 
                 Server.Start(socket_port);
@@ -47,7 +48,7 @@ namespace ReadFileService {
 
                 Tail tail = new Tail(file_in, n);
                 tail.LineFilter = prms.Filter;
-                tail.Changed += new EventHandler<Tail.TailEventArgs>(Tail_Changed);
+                tail.Changed += new EventHandler<Tail.TailEventArgs>(TailChanged);
                 tail.Run();
             }
             catch (Exception e) {
@@ -59,7 +60,7 @@ namespace ReadFileService {
             Server.CloseAll();
         }
 
-        private static void Tail_Changed(object sender, Tail.TailEventArgs e) {
+        private static void TailChanged(object sender, Tail.TailEventArgs e) {
             try {
                 string tmp = "";
 
