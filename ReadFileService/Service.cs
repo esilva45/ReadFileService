@@ -62,7 +62,7 @@ namespace ReadFileService {
         private static void TailChanged(object sender, Tail.TailEventArgs e) {
             try {
                 string tmp = "";
-                string OtherCallParties = "";
+                string InternalParty = "";
                 string ExternalParty = "";
 
                 if (e.Line.Contains("Status=Connected")) {
@@ -92,30 +92,30 @@ namespace ReadFileService {
                         ExternalParty = ExternalParty.Replace(Environment.NewLine, "").Trim();
 
                         int index2 = e.Line.IndexOf("DN=Wextension") + 17;
-                        OtherCallParties = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
-                        OtherCallParties = OtherCallParties.Replace(":", "").Trim();
-                        OtherCallParties = OtherCallParties.Replace(Environment.NewLine, "").Trim();
+                        InternalParty = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
+                        InternalParty = InternalParty.Replace(":", "").Trim();
+                        InternalParty = InternalParty.Replace(Environment.NewLine, "").Trim();
 
                         CallID.Add(tmp);
-                        Calls.Add(new Call() { CallID = tmp, When = DateTime.Now, Internal = OtherCallParties, External = ExternalParty, Connected = false });
+                        Calls.Add(new Call() { CallID = tmp, When = DateTime.Now, Internal = InternalParty, External = ExternalParty, Connected = false });
 
-                        Server.Message(tmp + "|Discando|" + ExternalParty + "|" + OtherCallParties + "@");
+                        Server.Message(tmp + "|Discando|" + ExternalParty + "|" + InternalParty + "@");
                         return;
                     }
 
                     if (e.Line.Contains("Status=Connected") && (CallID.Contains(tmp))) {
                         foreach (var call in Calls.ToList()) {
                             if (call.CallID.Equals(tmp)) {
-                                OtherCallParties = call.Internal.ToString();
+                                InternalParty = call.Internal.ToString();
                                 ExternalParty = call.External.ToString();
                                 Calls.RemoveAt(Calls.IndexOf(call));
-                                Calls.Add(new Call() { CallID = tmp, When = DateTime.Now, Internal = OtherCallParties, External = ExternalParty, Connected = true });
+                                Calls.Add(new Call() { CallID = tmp, When = DateTime.Now, Internal = InternalParty, External = ExternalParty, Connected = true });
                                 break;
                             }
                         }
 
                         CallID.Remove(tmp);
-                        Server.Message(tmp + "|Em Conversacao|" + ExternalParty + "|" + OtherCallParties + "@");
+                        Server.Message(tmp + "|Em Conversacao|" + ExternalParty + "|" + InternalParty + "@");
                         ClearCall();
                         return;
                     }
