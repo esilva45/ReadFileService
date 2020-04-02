@@ -15,7 +15,7 @@ namespace ReadFileService {
             catch (Exception) { }
         }
 
-        public static void VerifyDir(string path) {
+        private static void VerifyDir(string path) {
             try {
                 DirectoryInfo dir = new DirectoryInfo(path);
 

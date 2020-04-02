@@ -36,7 +36,7 @@ namespace ReadFileService {
                 }
             }
             catch (Exception ex) {
-                Util.Log(ex.ToString());
+                Util.Log("Method error SocketThreadFunc: " + ex.ToString());
             }
         }
 
@@ -51,23 +51,37 @@ namespace ReadFileService {
                 Util.Log("Client connected " + handler.RemoteEndPoint);
             }
             catch (Exception ex) {
-                Util.Log(ex.ToString());
+                Util.Log("Method error AcceptCallback: " + ex.ToString());
             }
         }
 
         public static void Message(string message) {
             try {
+                List<Socket> clearClient = new List<Socket>();
                 byte[] msg = Encoding.ASCII.GetBytes(message);
 
                 foreach (Socket socket in clientSockets) {
-                    if (SocketConnected(socket)) {
-                        socket.Send(msg);
-                        Util.Log("Send client " + socket.RemoteEndPoint + ", msg " + message);
+                    try {
+                        if (SocketConnected(socket)) {
+                            socket.Send(msg);
+                            Util.Log("Send client " + socket.RemoteEndPoint + ", msg " + message);                        
+                        } else {
+                            clearClient.Add(socket);
+                        }
                     }
+                    catch (Exception ex) {
+                        clearClient.Add(socket);
+                        Util.Log("Error when sending message: " + socket + " - " + ex.Message);
+                    }
+                }
+
+                foreach (Socket client in clearClient) {
+                    clientSockets.Remove(client);
+                    Util.Log("Client removed " + client.RemoteEndPoint);
                 }
             }
             catch (Exception ex) {
-                Util.Log(ex.ToString());
+                Util.Log("Method error Message: " + ex.ToString());
             }
         }
 
@@ -75,10 +89,11 @@ namespace ReadFileService {
             bool part1 = s.Poll(1000, SelectMode.SelectRead);
             bool part2 = (s.Available == 0);
 
-            if (part1 && part2)
+            if (part1 && part2) {
                 return false;
-            else
+            } else {
                 return true;
+            }
         }
 
         public static void CloseAll() {
@@ -88,7 +103,7 @@ namespace ReadFileService {
                 handler.Dispose();
             }
             catch (Exception ex) {
-                Util.Log(ex.ToString());
+                Util.Log("Method error CloseAll: " + ex.ToString());
             }
         }
     }
