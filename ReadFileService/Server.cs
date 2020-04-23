@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Xml.Linq;
 
 namespace ReadFileService {
     class Server {
@@ -36,22 +37,34 @@ namespace ReadFileService {
                 }
             }
             catch (Exception ex) {
-                Util.Log("Method error SocketThreadFunc: " + ex.ToString());
+                Util.Log("Method error SocketThreadFunc: " + Util.FlattenException(ex));
             }
         }
 
         private static void AcceptCallback(IAsyncResult ar) {
             try {
+                XElement configXml = XElement.Load(AppDomain.CurrentDomain.BaseDirectory + @"\config.xml");
+                string accept = configXml.Element("AcceptIP").Value.ToString();
+
                 allDone.Set();
                 listener = (Socket)ar.AsyncState;
                 handler = listener.EndAccept(ar);
-                handler.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-                state.workSocket = handler;
-                clientSockets.Add(handler);
-                Util.Log("Client connected " + handler.RemoteEndPoint);
+
+                if (accept.Contains(((IPEndPoint)handler.RemoteEndPoint).Address.ToString())) {
+                    handler.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                    state.workSocket = handler;
+                    clientSockets.Add(handler);
+                    Util.Log("Client " + handler.RemoteEndPoint + " connected");
+                } else {
+                    Util.Log("Access denied " + handler.RemoteEndPoint);
+                    handler.Shutdown(SocketShutdown.Both);
+                    handler.Disconnect(true);
+                    handler.Close();
+                    handler.Dispose();
+                }
             }
             catch (Exception ex) {
-                Util.Log("Method error AcceptCallback: " + ex.ToString());
+                Util.Log("Method error AcceptCallback: " + Util.FlattenException(ex));
             }
         }
 
@@ -64,24 +77,24 @@ namespace ReadFileService {
                     try {
                         if (SocketConnected(socket)) {
                             socket.Send(msg);
-                            Util.Log("Send client " + socket.RemoteEndPoint + ", msg " + message);                        
+                            Util.Log("Sending to " + socket.RemoteEndPoint + ", msg [" + message + "]");                        
                         } else {
                             clearClient.Add(socket);
                         }
                     }
-                    catch (Exception ex) {
+                    catch (SocketException exception) {
                         clearClient.Add(socket);
-                        Util.Log("Error when sending message: " + socket + " - " + ex.Message);
+                        Util.Log("Error when sending message: " + socket + " - " + Util.FlattenException(exception));
                     }
                 }
 
                 foreach (Socket client in clearClient) {
+                    Util.Log("Client " + client.RemoteEndPoint + " removed");
                     clientSockets.Remove(client);
-                    Util.Log("Client removed " + client.RemoteEndPoint);
                 }
             }
             catch (Exception ex) {
-                Util.Log("Method error Message: " + ex.ToString());
+                Util.Log("Method error Message: " + Util.FlattenException(ex));
             }
         }
 
@@ -103,7 +116,7 @@ namespace ReadFileService {
                 handler.Dispose();
             }
             catch (Exception ex) {
-                Util.Log("Method error CloseAll: " + ex.ToString());
+                Util.Log("Method error CloseAll: " + Util.FlattenException(ex));
             }
         }
     }

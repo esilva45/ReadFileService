@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ServiceProcess;
 using System.Xml.Linq;
 using System.Linq;
+using System.Timers;
 
 namespace ReadFileService {
     public partial class Service : ServiceBase {
@@ -13,6 +14,7 @@ namespace ReadFileService {
         private static int socket_port = 0;
         private static string queue = "";
         private static string license = "";
+        private static int interval = 0;
 
         public Service() {
             InitializeComponent();
@@ -29,11 +31,19 @@ namespace ReadFileService {
                 socket_port = int.Parse(configXml.Element("SocketPort").Value.ToString());
                 queue = configXml.Element("Queue").Value.ToString();
                 license = configXml.Element("LicenseKey").Value.ToString();
+                interval = int.Parse(configXml.Element("TimeInterval").Value.ToString());
                 CallID = new List<string>();
 
                 if (!License.VerifyLicence(license)) {
                     //this.Stop();
                     Environment.Exit(0);
+                }
+
+                if (interval > 0) {
+                    Timer aTimer = new Timer();
+                    aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+                    aTimer.Interval = interval;
+                    aTimer.Enabled = true;
                 }
 
                 Server.Start(socket_port);
@@ -51,12 +61,16 @@ namespace ReadFileService {
                 tail.Run();
             }
             catch (Exception e) {
-                Util.Log("Method error OnStart: " +  e.ToString());
+                Util.Log("Method error OnStart: " + Util.FlattenException(e));
             }
         }
 
         protected override void OnStop() {
             Server.CloseAll();
+        }
+
+        private static void OnTimedEvent(object source, ElapsedEventArgs e) {
+            Server.Message("@");
         }
 
         private static void TailChanged(object sender, Tail.TailEventArgs e) {
@@ -122,7 +136,7 @@ namespace ReadFileService {
                 }
             }
             catch (Exception ex) {
-                Util.Log("Method error TailChanged: " + ex.ToString());
+                Util.Log("Method error TailChanged: " + Util.FlattenException(ex));
             }
         }
 
@@ -130,7 +144,7 @@ namespace ReadFileService {
             foreach (var call in Calls.ToList()) {
                 if (call.When < DateTime.Now.AddMinutes(-30)) {
                     Calls.RemoveAt(Calls.IndexOf(call));
-                    Util.Log("Call ID removed " + call.CallID + " " + call.When);
+                    Util.Log("Call ID " + call.CallID + " " + call.When + " removed");
                 }
             }
         }
