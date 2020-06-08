@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.ServiceProcess;
 using System.Xml.Linq;
 using System.Linq;
-using System.Timers;
+using System.Threading;
+using System.Diagnostics;
 
 namespace ReadFileService {
     public partial class Service : ServiceBase {
         private static IList<string> CallID;
         private static List<Call> Calls;
+        public static Timer aTimer = null;
         private const short DefaultLines = 5;
         private static string file_in = "";
         private static int socket_port = 0;
@@ -40,10 +42,7 @@ namespace ReadFileService {
                 }
 
                 if (interval > 0) {
-                    Timer aTimer = new Timer();
-                    aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-                    aTimer.Interval = interval;
-                    aTimer.Enabled = true;
+                    aTimer = new Timer(OnTimedEvent, null, interval, Timeout.Infinite);
                 }
 
                 Server.Start(socket_port);
@@ -69,8 +68,11 @@ namespace ReadFileService {
             Server.CloseAll();
         }
 
-        private static void OnTimedEvent(object source, ElapsedEventArgs e) {
-            Server.Message("@");
+        private static void OnTimedEvent(object state) {
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            Server.Message("&");
+            aTimer.Change(Math.Max(0, interval - watch.ElapsedMilliseconds), Timeout.Infinite);
         }
 
         private static void TailChanged(object sender, Tail.TailEventArgs e) {

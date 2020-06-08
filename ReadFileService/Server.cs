@@ -69,12 +69,16 @@ namespace ReadFileService {
         }
 
         public static void Message(string message) {
+            List<Socket> clearClient = new List<Socket>();
+            Socket tmpSocket = null;
+
             try {
-                List<Socket> clearClient = new List<Socket>();
                 byte[] msg = Encoding.ASCII.GetBytes(message);
 
                 foreach (Socket socket in clientSockets) {
                     try {
+                        tmpSocket = socket;
+
                         if (SocketConnected(socket)) {
                             socket.Send(msg);
                             Util.Log("Sending to " + socket.RemoteEndPoint + ", msg [" + message + "]");                        
@@ -87,14 +91,16 @@ namespace ReadFileService {
                         Util.Log("Error when sending message: " + socket + " - " + Util.FlattenException(exception));
                     }
                 }
-
+            }
+            catch (Exception ex) {
+                clearClient.Add(tmpSocket);
+                Util.Log("Method error Message: " + Util.FlattenException(ex));
+            }
+            finally {
                 foreach (Socket client in clearClient) {
                     Util.Log("Client " + client.RemoteEndPoint + " removed");
                     clientSockets.Remove(client);
                 }
-            }
-            catch (Exception ex) {
-                Util.Log("Method error Message: " + Util.FlattenException(ex));
             }
         }
 

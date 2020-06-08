@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<config>
+  <LicenseKey>01A3-FF93-CC26-AA2D-EE39-7347-0A2A</LicenseKey>
+  <FileIn>C:\Gravacoes\9000\3cxManagementConsole.log</FileIn>
+  <SocketPort>11000</SocketPort>
+  <Queue>8000</Queue>
+  <!-- AcceptIP: valores separados por vírgula-->
+  <AcceptIP>127.0.0.1</AcceptIP>
+  <!-- TimeInterval: valor em milisegundos -->
+  <TimeInterval>120000</TimeInterval>
+</config>
