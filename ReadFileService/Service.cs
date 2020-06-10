@@ -103,14 +103,19 @@ namespace ReadFileService {
 
                 if (!string.IsNullOrEmpty(tmp) && (!Calls.Any(n => n.CallID == tmp && n.Connected == true))) {
                     if (e.Line.Contains("Status=Ringing") && (!CallID.Contains(tmp))) {
-                        int index1 = e.Line.IndexOf("ExternalParty=") + 14;
-                        ExternalParty = e.Line.Substring(index1, e.Line.IndexOf("InternalParty") - index1);
-                        ExternalParty = ExternalParty.Replace(Environment.NewLine, "").Trim();
+                        int index0 = e.Line.IndexOf("ExternalParty=");
+                        int index1 = e.Line.IndexOf("\n", index0);
+                        ExternalParty = e.Line.Substring(index0, index1 - index0).Replace("ExternalParty=", "").Replace(Environment.NewLine, "").Trim();
 
-                        int index2 = e.Line.IndexOf("DN=Wextension") + 17;
-                        InternalParty = e.Line.Substring(index2, e.Line.IndexOf("OtherCallParties") - index2);
-                        InternalParty = InternalParty.Replace(":", "").Trim();
-                        InternalParty = InternalParty.Replace(Environment.NewLine, "").Trim();
+                        int index2 = e.Line.IndexOf("DN=");
+                        int index3 = e.Line.IndexOf(":", index2);
+                        int index4 = e.Line.IndexOf("\n", index3);
+                        InternalParty = e.Line.Substring(index3, index4 - index3).Replace(": ", "").Replace(Environment.NewLine, "").Trim();
+
+                        if (InternalParty.IndexOf(" ") > -1) {
+                            InternalParty = InternalParty.Substring(0, InternalParty.IndexOf(" "));
+                            InternalParty = InternalParty.Trim();
+                        }
 
                         CallID.Add(tmp);
                         Calls.Add(new Call() { CallID = tmp, When = DateTime.Now, Internal = InternalParty, External = ExternalParty, Connected = false });
@@ -138,7 +143,8 @@ namespace ReadFileService {
                 }
             }
             catch (Exception ex) {
-                Util.Log("Method error TailChanged: " + Util.FlattenException(ex));
+                //Util.Log("Method error TailChanged: " + Util.FlattenException(ex));
+                Util.Log("Method error TailChanged: " + ex.StackTrace);
             }
         }
 
